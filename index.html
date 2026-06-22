@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>.gitignore pattern tester</title>
+<meta name="description" content="Paste a .gitignore and a file path. See whether git ignores it, which line decided, and why a !rule silently fails to re-include a file under an excluded directory.">
+<link rel="canonical" href="https://truffle.ghostwright.dev/public/tools/gitignore/">
+<link rel="icon" type="image/png" sizes="32x32" href="/public/_assets/favicon-32.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content=".gitignore pattern tester">
+<meta property="og:description" content="Paste a .gitignore and a file path. See whether git ignores it, which line decided, and why a negation can't re-include a file whose parent directory is excluded.">
+<meta property="og:url" content="https://truffle.ghostwright.dev/public/tools/gitignore/">
+<meta name="twitter:card" content="summary">
+
+<style>
+:root {
+  --paper: #f6f1e6;
+  --paper-raised: #fbf7ec;
+  --ink: #1c1814;
+  --ink-soft: #2e2822;
+  --quiet: #6b6157;
+  --rule: #e0d6c0;
+  --rule-soft: #ebe2cf;
+  --link: #7a4f1a;
+  --accent: #a57729;
+  --accent-bright: #c39040;
+  --code-bg: #ece3cc;
+  --code-ink: #2e2822;
+  --ok: #4f7a2e;
+  --warn: #a57729;
+  --over: #a83a25;
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "Book Antiqua", Georgia, serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171310;
+    --paper-raised: #1e1814;
+    --ink: #f0e9d9;
+    --ink-soft: #e0d9c6;
+    --quiet: #9c9082;
+    --rule: #2e2820;
+    --rule-soft: #26211b;
+    --link: #d4a259;
+    --accent: #d4a259;
+    --accent-bright: #e4b574;
+    --code-bg: #201a15;
+    --code-ink: #e0d9c6;
+    --ok: #95c963;
+    --warn: #d4a259;
+    --over: #e07a5f;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font: 17px/1.6 var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+main {
+  max-width: 44rem;
+  padding: 2.5rem 1.5rem 4rem;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin: 0 0 0.7rem;
+}
+.eyebrow a {
+  color: var(--accent);
+  border-bottom: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  text-decoration: none;
+}
+
+h1 {
+  font-family: var(--font-mono);
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.lede {
+  font-size: 1.02rem;
+  color: var(--ink-soft);
+  margin: 0 0 2rem;
+  max-width: 36rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--quiet);
+  margin: 2.2rem 0 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+p { margin: 0 0 1rem; }
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in oklab, var(--link) 30%, transparent);
+}
+a:hover { border-bottom-color: var(--link); }
+
+label.field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  margin: 0 0 0.5rem;
+}
+
+#gitignore {
+  width: 100%;
+  min-height: 11rem;
+  padding: 0.85rem 0.95rem;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  background: var(--paper-raised);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  -webkit-appearance: none;
+  resize: vertical;
+  tab-size: 2;
+  white-space: pre;
+  overflow-x: auto;
+}
+#gitignore:focus, #path:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.field-block { margin: 1.2rem 0 0; }
+.field-block label.field-label { margin-top: 0; }
+
+#path {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  -webkit-appearance: none;
+}
+
+.preset-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  margin: 1.6rem 0 0;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+}
+.presets button {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.32rem 0.65rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  letter-spacing: 0.02em;
+}
+.presets button:hover { border-color: var(--accent); color: var(--accent); }
+.presets button:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.result {
+  margin: 1.6rem 0 0;
+  padding: 1.1rem 1.2rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.status {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.status.ok { color: var(--ok); }
+.status.over { color: var(--over); }
+.status.warn { color: var(--warn); }
+
+.summary {
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  line-height: 1.4;
+  margin: 0 0 0.6rem;
+  color: var(--ink);
+}
+.summary em {
+  font-style: italic;
+  color: var(--accent);
+}
+.summary code { font-size: 0.86em; }
+
+.rule-card {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 25%, transparent);
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  margin: 0.4rem 0 0.8rem;
+  color: var(--ink-soft);
+}
+.rule-card .which { color: var(--accent); font-weight: 600; }
+.rule-card .reason {
+  display: block;
+  color: var(--quiet);
+  font-size: 0.78rem;
+  margin-top: 0.3rem;
+  line-height: 1.45;
+}
+
+.trap {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: color-mix(in oklab, var(--over) 9%, transparent);
+  border: 1px solid color-mix(in oklab, var(--over) 30%, transparent);
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  margin: 0 0 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.trap .which { color: var(--over); font-weight: 600; }
+
+table.rules {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  margin: 0.4rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+table.rules th, table.rules td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+table.rules th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+}
+table.rules td.ln { color: var(--quiet); white-space: nowrap; width: 2.5rem; text-align: right; }
+table.rules td.pattern { color: var(--ink); word-break: break-all; }
+table.rules td.kind { color: var(--ink-soft); word-break: break-word; width: 5rem; }
+table.rules td.flag { white-space: nowrap; width: 8rem; font-size: 0.74rem; }
+table.rules td.flag.wins { color: var(--over); font-weight: 600; }
+table.rules td.flag.wins-keep { color: var(--ok); font-weight: 600; }
+table.rules td.flag.overridden { color: var(--quiet); }
+table.rules td.flag.dead { color: var(--over); }
+table.rules td.flag.nomatch { color: var(--quiet); opacity: 0.55; }
+table.rules tr.winner td {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+table.rules tr.overridden td.pattern { text-decoration: line-through; text-decoration-color: color-mix(in oklab, var(--quiet) 60%, transparent); color: var(--ink-soft); }
+table.rules tr.dead td.pattern { text-decoration: line-through wavy; text-decoration-color: color-mix(in oklab, var(--over) 55%, transparent); color: var(--ink-soft); }
+table.rules tr.nomatch td { color: var(--quiet); opacity: 0.6; }
+
+table.reference {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  margin: 0;
+}
+table.reference th, table.reference td {
+  text-align: left;
+  padding: 0.42rem 0.55rem;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+table.reference th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+}
+table.reference td:first-child { color: var(--accent); font-weight: 600; white-space: nowrap; }
+table.reference td:nth-child(2) { color: var(--ink-soft); }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 0.1rem 0.32rem;
+  border-radius: 3px;
+}
+pre {
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+footer.colophon {
+  margin: 4rem 0 0;
+  padding: 1.2rem 0 0;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--quiet);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.4rem;
+  justify-content: space-between;
+}
+footer.colophon a {
+  color: var(--quiet);
+  border-bottom-color: color-mix(in oklab, var(--quiet) 30%, transparent);
+}
+footer.colophon a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+@media (max-width: 480px) {
+  main { padding: 1.8rem 1rem 3rem; }
+  #gitignore { font-size: 0.84rem; }
+  #path { font-size: 0.85rem; }
+  .summary { font-size: 1.04rem; }
+  table.rules, table.reference { font-size: 0.76rem; }
+  table.rules td.flag { width: 6rem; }
+  table.rules td.kind { width: 3.5rem; }
+}
+</style>
+</head>
+<body>
+
+<main>
+
+<p class="eyebrow"><a href="/public/tools/">/public/tools/</a></p>
+<h1>.gitignore pattern tester</h1>
+<p class="lede">Paste a <code>.gitignore</code> and a file path. See whether git ignores it, which line decided under last-match-wins, and the trap that bites everyone: a <code>!</code> rule cannot re-include a file whose parent directory is already excluded.</p>
+
+<label class="field-label" for="gitignore">.gitignore</label>
+<textarea id="gitignore" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"># Build output, anywhere
+build/
+
+# Logs
+*.log
+# ...but keep this one
+!important.log
+
+# Anchored to the repo root only
+/dist</textarea>
+
+<div class="field-block">
+  <label class="field-label" for="path">file path</label>
+  <input id="path" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" value="src/build/app.o">
+</div>
+
+<span class="preset-label">scenario presets</span>
+<div class="presets" id="scenarioPresets">
+  <button type="button" data-scenario="trap">!rule dead under excluded dir</button>
+  <button type="button" data-scenario="reinclude">!rule re-includes a file</button>
+  <button type="button" data-scenario="anchor">/dist anchored to root</button>
+  <button type="button" data-scenario="dironly">trailing slash = dirs only</button>
+  <button type="button" data-scenario="globstar">** across directories</button>
+</div>
+
+<section class="result" id="result" aria-live="polite">
+  <p class="status ok" id="status">analyzing&hellip;</p>
+  <p class="summary" id="summary"></p>
+  <div id="trapBox"></div>
+  <div id="ruleBox"></div>
+
+  <h2 style="margin-top: 1.4rem;">Every rule, in file order</h2>
+  <p style="font-family: var(--font-mono); font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 0.6rem;" id="groupInfo"></p>
+  <table class="rules">
+    <thead>
+      <tr><th>ln</th><th>pattern</th><th>type</th><th></th></tr>
+    </thead>
+    <tbody id="rulesBody"></tbody>
+  </table>
+</section>
+
+<h2>The trap everyone hits</h2>
+<p>Git decides a path by <strong>the last matching pattern</strong>, and a <code>!</code> prefix re-includes a file an earlier pattern excluded. So far, like CODEOWNERS. But there is one rule that breaks the symmetry, straight from <code>man gitignore</code>:</p>
+<p><em>"It is not possible to re-include a file if a parent directory of that file is excluded."</em></p>
+<p>Git does not descend into an ignored directory. If <code>build/</code> is excluded, git never looks inside it, so <code>!build/keep.txt</code> on a later line has nothing to act on. The negation is dead. This tool walks each directory in the path from the top down, exactly as git does, and tells you the moment a parent directory ends the search, so you can see <em>why</em> a <code>!</code> rule you expected to work never fired.</p>
+
+<table class="reference">
+  <thead>
+    <tr><th>token</th><th>meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>pattern</td><td>ignore files and directories matching the pattern.</td></tr>
+    <tr><td>!pattern</td><td>re-include (negate) a match an earlier pattern excluded. Has no effect if a parent directory is already excluded.</td></tr>
+    <tr><td>/<em>at end</em></td><td>match directories only. <code>cache/</code> ignores a directory named cache (and everything in it), never a file named cache.</td></tr>
+    <tr><td>/<em>at start</em></td><td>anchor to the root of the <code>.gitignore</code>. <code>/dist</code> matches only the top-level dist, not <code>src/dist</code>.</td></tr>
+    <tr><td>/<em>in middle</em></td><td>a slash anywhere except the end also anchors the pattern to root. <code>src/*.js</code> is relative to the root.</td></tr>
+    <tr><td>no slash</td><td>floats. <code>*.log</code> or <code>build/</code> matches at any depth.</td></tr>
+    <tr><td>*</td><td>matches anything except a slash, within one path segment.</td></tr>
+    <tr><td>**</td><td>matches across directories. <code>**/foo</code> (foo anywhere), <code>foo/**</code> (everything under foo), <code>a/**/b</code> (a and b with anything between).</td></tr>
+    <tr><td>?</td><td>matches any single character except a slash.</td></tr>
+    <tr><td># <em>at start</em></td><td>a comment line. Use <code>\#</code> for a pattern that starts with a literal hash.</td></tr>
+  </tbody>
+</table>
+
+<h2>What this tool does not do</h2>
+<p>It models one <code>.gitignore</code> sitting at the repository root and tests one path at a time. It does not combine nested <code>.gitignore</code> files in subdirectories, <code>.git/info/exclude</code>, or the global core.excludesFile, and it does not read your working tree to know which paths are real directories (it infers a directory from a trailing <code>/</code> on the path, otherwise treats the last segment as a file). Bracket character classes like <code>[a-z]</code> are matched literally rather than as ranges. For the canonical rules, see <a href="https://git-scm.com/docs/gitignore">git-scm.com/docs/gitignore</a>. The sibling tools <a href="/public/tools/codeowners/">CODEOWNERS</a> and <a href="/public/tools/robots-txt-check/">robots.txt</a> apply the same paste-rules-test-a-path idea to different precedence rules.</p>
+<p>This is a single static HTML file with no network calls. Source: <a href="https://github.com/truffle-dev/tool-gitignore">github.com/truffle-dev/tool-gitignore</a>. MIT.</p>
+
+<footer class="colophon">
+  <span><a href="https://truffle.ghostwright.dev/">truffle.ghostwright.dev</a></span>
+  <span>MIT &middot; <a href="https://github.com/truffle-dev/tool-gitignore">source</a></span>
+</footer>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var giEl = document.getElementById("gitignore");
+  var pathEl = document.getElementById("path");
+  var statusEl = document.getElementById("status");
+  var summaryEl = document.getElementById("summary");
+  var trapBoxEl = document.getElementById("trapBox");
+  var ruleBoxEl = document.getElementById("ruleBox");
+  var groupInfoEl = document.getElementById("groupInfo");
+  var rulesBodyEl = document.getElementById("rulesBody");
+
+  // -------- .gitignore parser --------
+  // Returns rules in file order: { pattern, negated, dirOnly, lineNum }
+  function parseGitignore(text) {
+    var rules = [];
+    var lines = text.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (line === "" || /^\s*$/.test(line)) continue;
+      // A line starting with # is a comment.
+      if (line.charAt(0) === "#") continue;
+      line = stripTrailingWS(line);
+      if (line === "") continue;
+      var negated = false;
+      if (line.charAt(0) === "!") {
+        negated = true;
+        line = line.slice(1);
+      } else if (line.charAt(0) === "\\" && (line.charAt(1) === "#" || line.charAt(1) === "!")) {
+        // escaped leading # or !
+        line = line.slice(1);
+      }
+      if (line === "") continue;
+      rules.push({
+        pattern: line,
+        negated: negated,
+        dirOnly: line.charAt(line.length - 1) === "/",
+        lineNum: i + 1
+      });
+    }
+    return rules;
+  }
+
+  // Trailing spaces are ignored unless the last one is escaped with a backslash.
+  function stripTrailingWS(s) {
+    var i = s.length;
+    while (i > 0) {
+      var c = s.charAt(i - 1);
+      if (c === " " || c === "\t") {
+        if (i >= 2 && s.charAt(i - 2) === "\\") break;
+        i--;
+      } else {
+        break;
+      }
+    }
+    return s.slice(0, i);
+  }
+
+  // -------- pattern compilation (gitignore semantics) --------
+  // Returns a matcher fn(candidatePath, isDir) -> bool. candidatePath has no
+  // leading slash. The directory walk in evaluate() handles "everything under
+  // an excluded directory", so a matcher only needs to recognise the entry itself.
+  function compile(pattern) {
+    var dirOnly = pattern.charAt(pattern.length - 1) === "/";
+    var p = pattern;
+    var anchored = false;
+
+    if (p.charAt(0) === "/") {
+      anchored = true;
+      p = p.slice(1);
+    }
+    var core = dirOnly ? p.slice(0, -1) : p;
+    if (core.indexOf("/") !== -1) anchored = true;
+
+    if (core === "") {
+      return function () { return false; };
+    }
+
+    var body = buildBody(core);
+    var prefix = anchored ? "^" : "(^|/)";
+    var re;
+    if (/\*\*$/.test(core)) {
+      re = new RegExp(prefix + body);          // trailing ** consumes the rest
+    } else {
+      re = new RegExp(prefix + body + "($|/)"); // match the entry or as a dir prefix
+    }
+
+    return function (candidate, isDir) {
+      if (dirOnly && !isDir) return false;
+      try { return re.test(candidate); } catch (_) { return false; }
+    };
+  }
+
+  // Translate glob tokens to a regex fragment. * -> [^/]*, ** -> .*,
+  // **/ -> (.*/)?, ? -> [^/], the rest escaped.
+  function buildBody(s) {
+    var out = "";
+    var i = 0;
+    while (i < s.length) {
+      var c = s.charAt(i);
+      if (c === "*" && s.charAt(i + 1) === "*") {
+        if (s.charAt(i + 2) === "/") { out += "(.*/)?"; i += 3; continue; }
+        out += ".*"; i += 2; continue;
+      }
+      if (c === "*") { out += "[^/]*"; i += 1; continue; }
+      if (c === "?") { out += "[^/]"; i += 1; continue; }
+      if (c === "/") { out += "/"; i += 1; continue; }
+      if (c === "\\") {
+        // escape the next char literally
+        var n = s.charAt(i + 1);
+        if (n) { out += escapeRe(n); i += 2; continue; }
+        i += 1; continue;
+      }
+      out += escapeRe(c);
+      i += 1;
+    }
+    return out;
+  }
+
+  function escapeRe(c) {
+    return ".+()[]{}|^$".indexOf(c) !== -1 ? "\\" + c : c;
+  }
+
+  function normalizePath(input) {
+    var t = String(input).trim();
+    if (/^https?:\/\//i.test(t)) {
+      try { t = new URL(t).pathname; } catch (_) {}
+    }
+    t = t.replace(/^\.\//, "");
+    t = t.replace(/^\/+/, "");
+    return t;
+  }
+
+  // -------- evaluator: walk the path top-down, like git --------
+  function evaluate(text, rawPath) {
+    var rules = parseGitignore(text);
+    var compiled = rules.map(function (r) { return { r: r, fn: compile(r.pattern) }; });
+
+    var trimmed = String(rawPath).trim();
+    var pathIsDir = /\/$/.test(trimmed);
+    var clean = normalizePath(rawPath).replace(/\/+$/, "");
+
+    var base = {
+      path: clean,
+      pathIsDir: pathIsDir,
+      rules: rules,
+      ignored: false,
+      kind: "empty",
+      deciderIdx: -1,
+      excludedDir: null,
+      deadNegations: [],
+      matchedCount: 0,
+      totalRules: rules.length
+    };
+
+    if (clean === "") { base.kind = "nopath"; return base; }
+
+    var segs = clean.split("/");
+    var deciderIdx = -1;
+
+    for (var i = 0; i < segs.length; i++) {
+      var isLast = (i === segs.length - 1);
+      var isDir = isLast ? pathIsDir : true;
+      var candidate = segs.slice(0, i + 1).join("/");
+
+      var levelIgnored = false;
+      var levelRuleIdx = -1;
+      for (var j = 0; j < compiled.length; j++) {
+        if (compiled[j].fn(candidate, isDir)) {
+          levelIgnored = !compiled[j].r.negated;
+          levelRuleIdx = j;
+        }
+      }
+
+      if (isLast) {
+        base.ignored = levelIgnored;
+        deciderIdx = levelRuleIdx;
+        base.kind = levelRuleIdx === -1 ? "default"
+          : (levelIgnored ? "direct-ignore" : "direct-reinclude");
+        break;
+      } else if (levelRuleIdx !== -1 && levelIgnored) {
+        // a parent directory is excluded: git stops descending here
+        base.ignored = true;
+        base.kind = "parent-excluded";
+        base.excludedDir = candidate;
+        deciderIdx = levelRuleIdx;
+        break;
+      }
+      // otherwise: ancestor not ignored (or re-included), keep walking
+    }
+
+    base.deciderIdx = deciderIdx;
+
+    // dead negations: !rules that match the file directly but can't fire because
+    // a parent directory ended the walk
+    if (base.kind === "parent-excluded") {
+      for (var k = 0; k < compiled.length; k++) {
+        if (compiled[k].r.negated && compiled[k].fn(clean, pathIsDir)) {
+          base.deadNegations.push(compiled[k].r);
+        }
+      }
+    }
+
+    // table annotation: how each rule relates to this path
+    var matched = 0;
+    base.ruleInfo = compiled.map(function (c, idx) {
+      var hitsFile = c.fn(clean, pathIsDir);
+      var hitsAncestor = false;
+      for (var a = 0; a < segs.length - 1; a++) {
+        if (c.fn(segs.slice(0, a + 1).join("/"), true)) { hitsAncestor = true; break; }
+      }
+      var hits = hitsFile || hitsAncestor;
+      if (hits) matched++;
+      var isDead = base.deadNegations.indexOf(c.r) !== -1;
+      var role;
+      if (idx === deciderIdx) role = c.r.negated ? "decides-keep" : "decides-ignore";
+      else if (isDead) role = "dead";
+      else if (hits) role = "overridden";
+      else role = "nomatch";
+      return {
+        lineNum: c.r.lineNum,
+        pattern: c.r.pattern,
+        negated: c.r.negated,
+        dirOnly: c.r.dirOnly,
+        role: role
+      };
+    });
+    base.matchedCount = matched;
+
+    return base;
+  }
+
+  // -------- render --------
+  function render() {
+    var result = evaluate(giEl.value, pathEl.value);
+    var disp = result.path || "(empty)";
+    trapBoxEl.innerHTML = "";
+
+    if (result.kind === "nopath") {
+      statusEl.className = "status warn";
+      statusEl.textContent = "No path";
+      summaryEl.innerHTML = "Type a file path above to test it against the patterns.";
+      ruleBoxEl.innerHTML = "";
+      groupInfoEl.textContent = result.totalRules + " rule" + (result.totalRules === 1 ? "" : "s") + " parsed.";
+      rulesBodyEl.innerHTML = "";
+      writeHash();
+      return;
+    }
+
+    if (result.ignored) {
+      statusEl.className = "status over";
+      statusEl.textContent = "Ignored";
+    } else {
+      statusEl.className = "status ok";
+      statusEl.textContent = "Tracked";
+    }
+
+    var decider = result.deciderIdx === -1 ? null : result.rules[result.deciderIdx];
+
+    if (result.kind === "default") {
+      summaryEl.innerHTML = "<code>" + escapeHtml(disp) + "</code> is <em>tracked</em>. No pattern matches it.";
+      ruleBoxEl.innerHTML = card("no match",
+        "None of the " + result.totalRules + " pattern" + (result.totalRules === 1 ? "" : "s") +
+        " match this path or any directory above it, so git tracks it normally.");
+    } else if (result.kind === "direct-ignore") {
+      summaryEl.innerHTML = "<code>" + escapeHtml(disp) + "</code> is <em>ignored</em> by line " +
+        decider.lineNum + ": <code>" + escapeHtml(decider.pattern) + "</code>.";
+      ruleBoxEl.innerHTML = card(escapeHtml(decider.pattern) + " (line " + decider.lineNum + ")",
+        "This is the last pattern that matches the path. " + overrideNote(result));
+    } else if (result.kind === "direct-reinclude") {
+      summaryEl.innerHTML = "<code>" + escapeHtml(disp) + "</code> is <em>tracked</em>: line " +
+        decider.lineNum + " (<code>!" + escapeHtml(decider.pattern) + "</code>) re-includes it.";
+      ruleBoxEl.innerHTML = card("!" + escapeHtml(decider.pattern) + " (line " + decider.lineNum + ")",
+        "An earlier pattern ignored this path; this negation is the last match, so it wins and git tracks the file. " + overrideNote(result));
+    } else if (result.kind === "parent-excluded") {
+      summaryEl.innerHTML = "<code>" + escapeHtml(disp) + "</code> is <em>ignored</em> because its parent directory <code>" +
+        escapeHtml(result.excludedDir) + "/</code> is excluded.";
+      ruleBoxEl.innerHTML = card(escapeHtml(decider.pattern) + " (line " + decider.lineNum + ")",
+        "Line " + decider.lineNum + " excludes the directory <code>" + escapeHtml(result.excludedDir) +
+        "/</code>. Git does not descend into an ignored directory, so everything inside it is ignored and the walk stops here.");
+      if (result.deadNegations.length) {
+        var lns = result.deadNegations.map(function (r) { return "line " + r.lineNum + " (<code>!" + escapeHtml(r.pattern) + "</code>)"; });
+        trapBoxEl.innerHTML =
+          "<div class=\"trap\"><span class=\"which\">dead negation</span> &mdash; " +
+          (lns.length === 1 ? lns[0] + " matches this file, but it" : lns.join(", ") + " match this file, but they") +
+          " can never fire: you cannot re-include a file whose parent directory <code>" + escapeHtml(result.excludedDir) +
+          "/</code> is excluded. To keep this file, do not exclude the whole directory \u2014 ignore its contents instead (for example <code>" +
+          escapeHtml(result.excludedDir) + "/*</code> with <code>!" + escapeHtml(result.excludedDir) + "/keep</code>).</div>";
+      }
+    }
+
+    groupInfoEl.textContent = result.totalRules + " rule" + (result.totalRules === 1 ? "" : "s") +
+      " parsed, " + result.matchedCount + " touch this path; the last match wins, and a parent exclusion stops the walk.";
+
+    if (!result.ruleInfo || result.ruleInfo.length === 0) {
+      rulesBodyEl.innerHTML = "<tr><td colspan=\"4\" style=\"color: var(--quiet);\">no rules parsed</td></tr>";
+    } else {
+      var html = "";
+      for (var i = 0; i < result.ruleInfo.length; i++) {
+        var r = result.ruleInfo[i];
+        var rowClass = "", flagClass = "", flagText = "";
+        if (r.role === "decides-ignore") { rowClass = "winner"; flagClass = "wins"; flagText = "decides: ignore"; }
+        else if (r.role === "decides-keep") { rowClass = "winner"; flagClass = "wins-keep"; flagText = "decides: keep"; }
+        else if (r.role === "dead") { rowClass = "dead"; flagClass = "dead"; flagText = "dead (parent excluded)"; }
+        else if (r.role === "overridden") { rowClass = "overridden"; flagClass = "overridden"; flagText = "matched, overridden"; }
+        else { rowClass = "nomatch"; flagClass = "nomatch"; flagText = "no match"; }
+        var typeText = (r.negated ? "negate" : "ignore") + (r.dirOnly ? ", dir" : "");
+        html +=
+          "<tr class=\"" + rowClass + "\">" +
+            "<td class=\"ln\">" + r.lineNum + "</td>" +
+            "<td class=\"pattern\">" + (r.negated ? "!" : "") + escapeHtml(r.pattern) + "</td>" +
+            "<td class=\"kind\">" + typeText + "</td>" +
+            "<td class=\"flag " + flagClass + "\">" + flagText + "</td>" +
+          "</tr>";
+      }
+      rulesBodyEl.innerHTML = html;
+    }
+
+    writeHash();
+  }
+
+  function card(which, reason) {
+    return "<div class=\"rule-card\"><span class=\"which\">" + which + "</span>" +
+      "<span class=\"reason\">" + reason + "</span></div>";
+  }
+
+  function overrideNote(result) {
+    if (result.matchedCount <= 1) return "It is the only pattern that touches this path.";
+    return result.matchedCount + " patterns touch this path; the last match in file order wins.";
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // -------- URL hash sharing --------
+  function writeHash() {
+    try {
+      var payload = { g: giEl.value, p: pathEl.value };
+      var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      if (("#" + encoded) !== location.hash) {
+        history.replaceState(null, "", "#" + encoded);
+      }
+    } catch (_) {}
+  }
+
+  function readHash() {
+    if (!location.hash || location.hash.length <= 1) return false;
+    try {
+      var json = decodeURIComponent(escape(atob(location.hash.slice(1))));
+      var payload = JSON.parse(json);
+      if (typeof payload.g === "string") giEl.value = payload.g;
+      if (typeof payload.p === "string") pathEl.value = payload.p;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // -------- presets --------
+  var scenarios = {
+    trap: {
+      g: "# The whole directory is excluded\nbuild/\n\n# This looks like it keeps one file, but it can't\n!build/keep.txt\n",
+      p: "build/keep.txt"
+    },
+    reinclude: {
+      g: "# Ignore every log\n*.log\n\n# ...except this one\n!important.log\n",
+      p: "important.log"
+    },
+    anchor: {
+      g: "# Anchored: only the top-level dist\n/dist\n",
+      p: "src/dist/bundle.js"
+    },
+    dironly: {
+      g: "# Trailing slash: directories only\ncache/\n",
+      p: "app/cache/data.bin"
+    },
+    globstar: {
+      g: "# Any minified js, at any depth\n**/*.min.js\n\n# Everything under vendor\nvendor/**\n",
+      p: "assets/js/app.min.js"
+    }
+  };
+
+  document.getElementById("scenarioPresets").addEventListener("click", function (e) {
+    if (e.target.tagName === "BUTTON") {
+      var key = e.target.getAttribute("data-scenario");
+      if (scenarios[key]) {
+        giEl.value = scenarios[key].g;
+        pathEl.value = scenarios[key].p;
+        render();
+      }
+    }
+  });
+
+  giEl.addEventListener("input", render);
+  pathEl.addEventListener("input", render);
+
+  // test export for offline checks
+  globalThis.__GITIGNORE = { evaluate: evaluate, compile: compile, parseGitignore: parseGitignore };
+
+  readHash();
+  render();
+})();
+</script>
+</body>
+</html>
