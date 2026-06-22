@@ -1,0 +1,134 @@
+[
+  {
+    "gitignore": "build/",
+    "path": "build/app.o",
+    "ignored": true,
+    "decidingRule": "build/"
+  },
+  {
+    "gitignore": "build/",
+    "path": "src/build/app.o",
+    "ignored": true,
+    "decidingRule": "build/"
+  },
+  {
+    "gitignore": "*.log",
+    "path": "debug.log",
+    "ignored": true,
+    "decidingRule": "*.log"
+  },
+  {
+    "gitignore": "*.log",
+    "path": "src/a/debug.log",
+    "ignored": true,
+    "decidingRule": "*.log"
+  },
+  {
+    "gitignore": "*.log\n!important.log",
+    "path": "important.log",
+    "ignored": false,
+    "decidingRule": "!important.log"
+  },
+  {
+    "gitignore": "/dist",
+    "path": "dist/x",
+    "ignored": true,
+    "decidingRule": "/dist"
+  },
+  {
+    "gitignore": "/dist",
+    "path": "src/dist/x",
+    "ignored": false,
+    "decidingRule": null
+  },
+  {
+    "gitignore": "doc/frotz",
+    "path": "doc/frotz",
+    "ignored": true,
+    "decidingRule": "doc/frotz"
+  },
+  {
+    "gitignore": "doc/frotz",
+    "path": "a/doc/frotz",
+    "ignored": false,
+    "decidingRule": null
+  },
+  {
+    "gitignore": "**/logs",
+    "path": "logs/x",
+    "ignored": true,
+    "decidingRule": "**/logs"
+  },
+  {
+    "gitignore": "**/logs",
+    "path": "a/b/logs/x",
+    "ignored": true,
+    "decidingRule": "**/logs"
+  },
+  {
+    "gitignore": "logs/**",
+    "path": "logs/a/b/c",
+    "ignored": true,
+    "decidingRule": "logs/**"
+  },
+  {
+    "gitignore": "abc/*\n!abc/keep.txt",
+    "path": "abc/keep.txt",
+    "ignored": false,
+    "decidingRule": "!abc/keep.txt"
+  },
+  {
+    "gitignore": "build/\n!build/keep.txt",
+    "path": "build/keep.txt",
+    "ignored": true,
+    "decidingRule": "build/"
+  },
+  {
+    "gitignore": "cache/",
+    "path": "app/cache/data.bin",
+    "ignored": true,
+    "decidingRule": "cache/"
+  },
+  {
+    "gitignore": "**/*.min.js",
+    "path": "src/vendor/jquery.min.js",
+    "ignored": true,
+    "decidingRule": "**/*.min.js"
+  },
+  {
+    "gitignore": "foo?bar",
+    "path": "fooXbar",
+    "ignored": true,
+    "decidingRule": "foo?bar"
+  },
+  {
+    "gitignore": "foo?bar",
+    "path": "foo/bar",
+    "ignored": false,
+    "decidingRule": null
+  },
+  {
+    "gitignore": "\\#literal",
+    "path": "#literal",
+    "ignored": true,
+    "decidingRule": "\\#literal"
+  },
+  {
+    "gitignore": "a/**/b",
+    "path": "a/x/y/b",
+    "ignored": true,
+    "decidingRule": "a/**/b"
+  },
+  {
+    "gitignore": "*.tmp\n!keep.tmp",
+    "path": "sub/keep.tmp",
+    "ignored": false,
+    "decidingRule": "!keep.tmp"
+  },
+  {
+    "gitignore": "node_modules/",
+    "path": "a/node_modules/pkg/index.js",
+    "ignored": true,
+    "decidingRule": "node_modules/"
+  }
+]

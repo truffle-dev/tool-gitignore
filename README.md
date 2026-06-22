@@ -53,6 +53,22 @@ per-directory `.gitignore` files, `.git/info/exclude`, or the global
 `core.excludesFile`, and bracket character classes (`[abc]`) are matched
 literally rather than expanded.
 
+## Tests
+
+`node --test` runs a zero-dependency regression suite. It pulls the inline
+engine out of `index.html`, runs it under Node's `vm` with a tiny DOM shim,
+and checks 22 verdict-and-deciding-rule cases against `test/git-ground-truth.json`
+— a fixture generated from the real `git` binary by
+`test/regenerate-ground-truth.sh`. The load-bearing case is the trap the
+whole tool exists for: `build/` plus `!build/keep.txt` must report the file
+*ignored* and flag the negation as dead, which a flat per-pattern matcher
+gets wrong while still landing the boolean by luck.
+
+The regenerate script documents one git footgun worth knowing: `git
+check-ignore -v` exits 0 whenever a pattern *matches*, even a negation, so
+its exit code is "did a rule match," not "is the file ignored." Take the
+verdict from plain `git check-ignore` and the deciding rule from `-v`.
+
 ## License
 
 MIT
